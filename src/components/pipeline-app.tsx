@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FileAudio,
-  FolderOpen,
   Cloud,
   Search,
   Sparkles,
@@ -48,7 +47,6 @@ export function PipelineApp() {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [directory, setDirectory] = useState("");
   const [s3Prefix, setS3Prefix] = useState("");
   const [s3Objects, setS3Objects] = useState<
     Array<{ key: string; size: number | null }>
@@ -118,28 +116,6 @@ export function PipelineApp() {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function ingestDirectory() {
-    setBusy("directory");
-    setError(null);
-    setMessage(null);
-    try {
-      const response = await fetch("/api/ingest/local", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ directory }),
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error || "Directory ingest failed");
-      const results = json.results as IngestResult[];
-      setMessage(`Directory ingest finished: ${results.length} file(s).`);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Directory ingest failed");
     } finally {
       setBusy(null);
     }
@@ -244,9 +220,8 @@ export function PipelineApp() {
               <h2 className="font-display text-2xl">Ingest</h2>
             </div>
             <Tabs defaultValue="upload">
-              <TabsList className="grid w-full grid-cols-3 bg-[#10262f]">
+              <TabsList className="grid w-full grid-cols-2 bg-[#10262f]">
                 <TabsTrigger value="upload">Upload</TabsTrigger>
-                <TabsTrigger value="directory">Directory</TabsTrigger>
                 <TabsTrigger value="s3">S3</TabsTrigger>
               </TabsList>
 
@@ -254,7 +229,8 @@ export function PipelineApp() {
                 <p className="text-sm text-[#9fb4ba]">
                   Drop MP4, MOV, WAV, MP3, M4A, and other common media. AssemblyAI
                   is used when configured; otherwise mock transcripts keep the
-                  pipeline usable.
+                  pipeline usable. For folders on your machine, use{" "}
+                  <code className="text-[#d7e6ea]">npm run ingest:dir</code>.
                 </p>
                 <Label
                   htmlFor="file-input"
@@ -273,35 +249,6 @@ export function PipelineApp() {
                     onChange={(event) => void uploadFiles(event.target.files)}
                   />
                 </Label>
-              </TabsContent>
-
-              <TabsContent value="directory" className="mt-4 space-y-4">
-                <p className="text-sm text-[#9fb4ba]">
-                  Point at a local folder on this machine. Every supported media
-                  file inside is transcribed and indexed.
-                </p>
-                <div className="space-y-2">
-                  <Label htmlFor="directory">Local directory path</Label>
-                  <Input
-                    id="directory"
-                    value={directory}
-                    onChange={(event) => setDirectory(event.target.value)}
-                    placeholder="/path/to/media"
-                    className="border-white/10 bg-[#0a171d] text-[#f4efe6]"
-                  />
-                </div>
-                <Button
-                  onClick={() => void ingestDirectory()}
-                  disabled={!directory || busy === "directory"}
-                  className="bg-[#f0b45a] text-[#1a1205] hover:bg-[#ffc76f]"
-                >
-                  {busy === "directory" ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                  )}
-                  Ingest directory
-                </Button>
               </TabsContent>
 
               <TabsContent value="s3" className="mt-4 space-y-4">

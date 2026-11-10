@@ -4,8 +4,9 @@ ClipScript is a transcript extraction pipeline for video and audio. It ingests m
 
 ## What you can do
 
-- Upload media in the browser or point the API at a folder
-- List and ingest media keys from S3
+- Upload media in the browser (authenticated; private/team Cursor apps)
+- Batch-upload a local folder via the CLI (files only — no server path access)
+- List and ingest media keys from S3 (media extensions only, optional prefix allowlist)
 - Browse completed transcripts
 - Search with exact terms (SQLite FTS5), meaning (embeddings), or both
 
@@ -27,10 +28,11 @@ Copy `.env.example` to `.env.local` and fill in secrets as needed:
 | `ASSEMBLYAI_API_KEY` | Real transcription for MP4, MOV, WAV, MP3, and similar |
 | `OPENAI_API_KEY` | OpenAI `text-embedding-3-small` for semantic search |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_REGION` / `S3_BUCKET` | S3 listing and ingest |
+| `S3_ALLOWED_PREFIX` | Optional key prefix allowlist for S3 access |
 
 ## Batch directory ingest
 
-With the dev server running:
+With the dev server running, the CLI reads files locally and uploads them as multipart form data (the API never accepts filesystem paths):
 
 ```bash
 npm run ingest:dir -- /path/to/media
@@ -38,15 +40,17 @@ npm run ingest:dir -- /path/to/media
 
 ## API surface
 
+All routes require a signed-in Cursor viewer (simulated locally in development).
+
 | Method | Path | Description |
 | --- | --- | --- |
 | `GET` | `/api/status` | Provider + library status |
 | `GET` | `/api/transcripts` | List transcripts |
 | `GET` | `/api/transcripts/:id` | Fetch one transcript |
 | `POST` | `/api/search` | `{ query, mode?: "keyword" \| "semantic" \| "hybrid" }` |
-| `POST` | `/api/ingest/local` | multipart `files` or JSON `{ directory }` |
+| `POST` | `/api/ingest/local` | multipart `files` only (max 5 × 100MB) |
 | `GET` | `/api/s3/list?prefix=` | List media objects |
-| `POST` | `/api/ingest/s3` | `{ keys }` or `{ ingestAll, prefix }` |
+| `POST` | `/api/ingest/s3` | `{ keys }` or `{ ingestAll, prefix }` (media keys only) |
 
 ## Architecture
 
